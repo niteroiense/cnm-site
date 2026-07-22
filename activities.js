@@ -11,7 +11,7 @@
     trilha: ["--t-trilha", "Trilha"], escalada: ["--t-escalada", "Escalada"],
     cicloturismo: ["--t-pedal", "Pedal"], pedal: ["--t-pedal", "Pedal"],
     social: ["--t-social", "Social"], curso: ["--t-curso", "Curso"],
-    rapel: ["--t-social", "Rapel"], reuniao: ["--t-curso", "Reunião"],
+    oficina: ["--t-oficina", "Oficina"], evento: ["--t-evento", "Evento"],
   };
   var MES = ["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
   var DIA = ["dom","seg","ter","qua","qui","sex","sáb"];
@@ -36,10 +36,6 @@
   ]).then(function (res) {
     var evs = res[0] || [];
     var nomes = {}; (res[1] || []).forEach(function(a){ nomes[a.id] = a.nome; });
-    if (evs.length === 0) {
-      // sem futuras: mostra as mais recentes para a seção não ficar vazia
-      return sb("eventos?select=" + cols + "&order=data_inicio.desc&limit=3").then(function(r){ render(r || [], nomes); });
-    }
     render(evs, nomes);
   });
 
@@ -63,9 +59,9 @@
       return '<article class="card"><div class="top" style="background:var(' + tvar + ')"></div><div class="body">' +
         '<div class="head"><div class="corner"><span class="badge" style="background:color-mix(in srgb,var(' + tvar + ') 16%,transparent);color:var(' + tvar + ')">' + esc(tlabel) + '</span>' +
         (dif ? '<span class="badge soft">' + esc(dif) + '</span>' : '') + '</div>' +
-        '<div class="guia"><div class="avatar" style="background:' + bg + '">' + iniciais(guiaNome) + (extra ? '<span class="plus">' + extra + '</span>' : '') + '</div>' +
-        '<span class="lbl">Guia responsável</span><span class="nm">' + esc(guiaNome) + '</span></div></div>' +
-        '<h3>' + esc(e.titulo) + '</h3>' +
+        '<h3>' + esc(e.titulo) + '</h3></div>' +
+        '<div class="guia-row"><div class="avatar sm" style="background:' + bg + '">' + iniciais(guiaNome) + (extra ? '<span class="plus">' + extra + '</span>' : '') + '</div>' +
+        '<div class="guia-txt"><span class="lbl">Guia responsável</span><span class="nm">' + esc(guiaNome) + '</span></div></div>' +
         '<div class="meta"><div class="row"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>' + esc(fmtData(e.data_inicio, e.horario_inicio)) + '</div>' +
         '<div class="row"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 12-9 12s-9-5-9-12a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>' + esc(e.local || "") + '</div></div>' +
         '<div><div class="vbar"><span style="width:' + pct + '%;background:' + bar + '"></span></div>' +
