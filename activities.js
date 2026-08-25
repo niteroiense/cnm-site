@@ -1,7 +1,7 @@
 // Próximas atividades — puxa ao vivo do Supabase (leitura pública via anon key).
 (function () {
-  var SB_URL = "https://zuaktulejcxxihcpmlws.supabase.co";
-  var SB_KEY = "sb_publishable_-Wr2lSS58vXWDPMk1hmzlQ_6Qxx3Mee";
+  var SB_URL = "https://ijbezuisiudyxktqoaaf.supabase.co";
+  var SB_KEY = "sb_publishable_ltjnX5pcK6aGVVE4-1j3bA_trHSfXrZ";
   var H = { apikey: SB_KEY, Authorization: "Bearer " + SB_KEY };
   var APP = "https://cnm-aventura-hub-jade.vercel.app";
   var wrap = document.getElementById("cards");
