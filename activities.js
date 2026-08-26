@@ -3,7 +3,7 @@
   var SB_URL = "https://ijbezuisiudyxktqoaaf.supabase.co";
   var SB_KEY = "sb_publishable_ltjnX5pcK6aGVVE4-1j3bA_trHSfXrZ";
   var H = { apikey: SB_KEY, Authorization: "Bearer " + SB_KEY };
-  var APP = "https://cnm-aventura-hub-jade.vercel.app";
+  var APP = "https://painel.niteroiense.org.br";
   var wrap = document.getElementById("cards");
   if (!wrap) return;
 
