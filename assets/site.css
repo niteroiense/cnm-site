@@ -369,3 +369,10 @@ ul.arquivo .tag{flex:none;font-size:.72rem;font-weight:700;color:var(--ink-soft)
 .aviso-faixa .btn-white{flex:none;background:var(--navy-700);color:#fff;}
 .aviso-faixa .btn-white:hover{background:var(--navy-900);}
 @media (max-width:760px){.aviso-faixa .wrap{flex-direction:column;align-items:flex-start;gap:14px;} .aviso-faixa .aviso-ic{display:none;}}
+
+/* DOCUMENTOS publicados pelo painel (topo de Documentos e Boletins) */
+.prosa ul.docs{list-style:none;padding:0;margin:0 0 1.6em;display:grid;gap:10px;}
+.prosa ul.docs li{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin:0;}
+.prosa ul.docs li a{font-weight:700;}
+.prosa ul.docs .doc-data{display:block;font-size:.8rem;color:var(--ink-soft);margin-top:2px;}
+.prosa ul.docs li p{margin-top:6px;font-size:.93rem;color:var(--ink-soft);}

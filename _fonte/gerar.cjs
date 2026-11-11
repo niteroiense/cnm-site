@@ -11,11 +11,24 @@ const fs = require("fs");
 const path = require("path");
 const { parse } = require("node-html-parser");
 
+const { limpar } = require("./extrair.cjs");
+
 const RAIZ = path.resolve(__dirname, "..");
+// Para onde as páginas vão. Na Vercel: dist/ (outputDirectory do vercel.json).
+// Localmente, aponte SAIDA para fora do Google Drive.
+const SAIDA = path.resolve(process.env.SAIDA || path.join(RAIZ, "dist"));
+// Endereço público, usado nas prévias de link (WhatsApp/Facebook exigem URL absoluta).
+const SITE_URL = (process.env.SITE_URL || "https://novosite.niteroiense.org.br").replace(/\/$/, "");
+// Banco do painel: o que a diretoria publica. Chave pública (a mesma da agenda da home);
+// ela só enxerga o que está publicado.
+const SUPABASE_URL = process.env.SUPABASE_URL || "https://ijbezuisiudyxktqoaaf.supabase.co";
+const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY || "sb_publishable_ltjnX5pcK6aGVVE4-1j3bA_trHSfXrZ";
+
 const CONTEUDO = require("./conteudo/paginas.json");
-const POSTS = require("./conteudo/posts.json");
+let POSTS = require("./conteudo/posts.json");   // substituído pelo banco depois da importação
 const CROQUIS = require("./conteudo/croquis.json");
 const TRILHAS = require("./conteudo/trilhas.json");
+let DOCUMENTOS = [];                              // PDFs publicados pelo painel
 
 // Categorias dos posts que ganham página própria, em /categoria/<slug>/ (URL do WP).
 // "sem-categoria" não tem página: esses posts aparecem só no arquivo completo.
@@ -153,7 +166,9 @@ const AVULSAS = [
 
 // Faixa de aviso na home, logo abaixo do hero. `ate` = último dia em que aparece
 // (o script da própria faixa a esconde depois disso). Sem aviso: AVISO = null.
-const AVISO = {
+// Depois da migração 16, vem da tabela `destaques` (o painel edita); este valor
+// fixo só vale enquanto a tabela não existe.
+let AVISO = {
   ate: "2026-11-26",
   rotulo: "Assembleia Geral Ordinária",
   titulo: "26 de novembro de 2026, às 20h, na sede",
@@ -204,9 +219,13 @@ const ROTAS = new Set(["/", "/contato/"]);
 SECOES.forEach(s => { ROTAS.add(s.rota); s.paginas.forEach(p => p.rota && ROTAS.add(p.rota)); });
 AVULSAS.forEach(a => ROTAS.add(a.rota));
 const ROTAS_FIXAS = new Set(ROTAS);
-[POSTS, CROQUIS, TRILHAS].forEach(col => Object.keys(col).forEach(r => ROTAS.add(r)));
-CATEGORIAS.forEach(c => ROTAS.add(`/categoria/${c.slug}/`));
-ROTAS.add("/ultimos-posts/");
+CATEGORIAS.forEach(c => ROTAS_FIXAS.add(`/categoria/${c.slug}/`));
+ROTAS_FIXAS.add("/ultimos-posts/");
+/** Posts vêm do banco: só dá para registrar depois de carregar. */
+function registrarRotasDinamicas() {
+  ROTAS_FIXAS.forEach(r => ROTAS.add(r));
+  [POSTS, CROQUIS, TRILHAS].forEach(col => Object.keys(col).forEach(r => ROTAS.add(r)));
+}
 
 const avisos = [];
 
@@ -364,7 +383,10 @@ function rodape() {
 `;
 }
 
-function documento({ rota, titulo, descricao, corpoHtml }) {
+/** URL absoluta — exigida pelas prévias de link do WhatsApp e do Facebook. */
+function absoluta(u) { return /^https?:\/\//.test(u) ? u : SITE_URL + (u.startsWith("/") ? u : "/" + u); }
+
+function documento({ rota, titulo, descricao, corpoHtml, imagem, tipo = "website" }) {
   const desc = esc(resumir(descricao || "", 158));
   return `<!doctype html>
 <html lang="pt-BR">
@@ -375,8 +397,11 @@ function documento({ rota, titulo, descricao, corpoHtml }) {
 <meta name="description" content="${desc}">
 <meta property="og:title" content="${esc(titulo)} — CNM">
 <meta property="og:description" content="${desc}">
-<meta property="og:type" content="website">
-<meta property="og:image" content="/assets/hero.jpg">
+<meta property="og:type" content="${tipo}">
+<meta property="og:url" content="${esc(absoluta(rota))}">
+<meta property="og:image" content="${esc(absoluta(imagem || "/assets/hero.jpg"))}">
+<meta property="og:site_name" content="CNM — Clube Niteroiense de Montanhismo">
+<meta name="twitter:card" content="summary_large_image">
 <meta name="theme-color" content="#16357A">
 <link rel="canonical" href="https://www.niteroiense.org.br${rota}">
 <link rel="icon" type="image/png" href="/assets/logo.png">
@@ -416,7 +441,7 @@ function lateral(secao, rotaAtual) {
 }
 
 function escrever(rota, html) {
-  const alvo = path.join(RAIZ, rota, "index.html");
+  const alvo = path.join(SAIDA, rota, "index.html");
   fs.mkdirSync(path.dirname(alvo), { recursive: true });
   fs.writeFileSync(alvo, html);
 }
@@ -426,11 +451,24 @@ function escrever(rota, html) {
 // ---------------------------------------------------------------------------
 const gerados = [];
 
+/** PDFs publicados pelo painel, no topo de Documentos e de Boletins. */
+const SECAO_DOC = { "/publicacoes/documentos/": "documentos", "/publicacoes/boletins-cnm/": "boletins" };
+function listaDocumentos(rota) {
+  const secao = SECAO_DOC[rota];
+  const itens = secao ? DOCUMENTOS.filter(d => d.secao === secao) : [];
+  if (!itens.length) return "";
+  return `<ul class="docs">${itens.map(d =>
+    `<li><a class="arquivo" data-tipo="PDF" href="${esc(d.arquivo_url)}" target="_blank" rel="noopener">${esc(d.titulo)}</a>` +
+    `<span class="doc-data">${dataExtenso(d.data)}</span>${d.descricao ? `<p>${esc(d.descricao)}</p>` : ""}</li>`).join("")}</ul>`;
+}
+
 function paginaDeConteudo(secao, p) {
   const fonte = p.fonte === undefined ? p.rota : p.fonte;
   const src = fonte ? CONTEUDO[fonte] : null;
   if (fonte && !src) throw new Error(`sem conteúdo extraído para ${fonte}`);
-  const corpo = (p.html || adaptarConteudo(src.html, p.rota)) + (p.extra || "");
+  let corpo = (p.html || adaptarConteudo(src.html, p.rota)) + (p.extra || "");
+  const docs = listaDocumentos(p.rota);
+  if (docs) corpo = docs + `<h2>Acervo</h2>` + corpo;
   const descricao = p.resumo || primeiroParagrafo(corpo);
   const trilha = secao ? [{ href: secao.rota, titulo: secao.titulo }, { titulo: p.titulo }] : [{ titulo: p.titulo }];
   const html = documento({
@@ -527,6 +565,8 @@ function catPrincipal(post) {
 /** Capa local (ou nada, se o arquivo não foi migrado). */
 function capaLocal(url) {
   if (!url) return "";
+  // enviada pelo painel: fica no armazenamento do Supabase, já é pública
+  if (/^https:\/\//.test(url) && !/niteroiense\.org\.br/i.test(url)) return url;
   const p = url.replace(/^https?:\/\/(www\.)?niteroiense\.org\.br/i, "").split("?")[0];
   return p.startsWith("/wp-content/uploads/") && existeLocal(p.slice(1)) ? p : "";
 }
@@ -538,7 +578,8 @@ function postsOrdenados() {
 function cartaoPost(p) {
   const capa = capaLocal(p.capa);
   const cat = catPrincipal(p);
-  return `<a class="cartao post reveal" href="${p.rota}">${capa ? `<span class="capa" style="background-image:url('${capa}')"></span>` : `<span class="capa vazia"></span>`}<span class="meta-post">${cat ? esc(cat.nome) + " · " : ""}${dataExtenso(p.data)}</span><h3>${esc(p.titulo)}</h3><p>${esc(resumir(primeiroParagrafo(p.html), 130))}</p></a>`;
+  const fundo = capa ? `<span class="capa" style="background-image:url('${esc(capa.replace(/['()\\]/g, encodeURIComponent))}')"></span>` : `<span class="capa vazia"></span>`;
+  return `<a class="cartao post reveal" href="${p.rota}">${fundo}<span class="meta-post">${cat ? esc(cat.nome) + " · " : ""}${dataExtenso(p.data)}</span><h3>${esc(p.titulo)}</h3><p>${esc(resumir(p.resumo || primeiroParagrafo(p.html), 130))}</p></a>`;
 }
 
 function paginaCategoria(cat) {
@@ -591,7 +632,7 @@ function paginaPost(p) {
   const capa = capaLocal(p.capa);
   // a capa só entra se o texto ainda não mostra a mesma imagem
   const raizArquivo = capa ? path.basename(capa).replace(/(-\d+x\d+)?\.\w+$/, "") : "";
-  if (capa && !corpo.includes(raizArquivo)) corpo = `<img class="capa-post" src="${capa}" alt="" loading="lazy">` + corpo;
+  if (capa && !corpo.includes(raizArquivo)) corpo = `<img class="capa-post" src="${esc(capa)}" alt="" loading="lazy">` + corpo;
   const relacionados = postsOrdenados().filter(x => x.rota !== p.rota && cat && x.categorias.some(c => c.slug === cat.slug)).slice(0, 5);
   const trilha = [{ href: "/publicacoes/", titulo: "Publicações" }];
   if (cat) trilha.push({ href: `/categoria/${cat.slug}/`, titulo: cat.nome });
@@ -600,7 +641,8 @@ function paginaPost(p) {
           <div class="lat-cta"><h4>Venha para o CNM</h4><p>Reunião social toda quinta, das 19h30 às 22h, na sede. Aberta a quem quiser conhecer.</p><a class="btn btn-white" href="/como-participar/">Como participar</a></div>
         </aside>`;
   const html = documento({
-    rota: p.rota, titulo: p.titulo, descricao: primeiroParagrafo(corpo),
+    rota: p.rota, titulo: p.titulo, descricao: p.resumo || primeiroParagrafo(corpo),
+    imagem: capa || undefined, tipo: "article",
     corpoHtml: `${heroPagina({ trilha, eyebrow: [cat ? cat.nome : "Publicação", dataExtenso(p.data)].filter(Boolean).join(" · "), titulo: p.titulo })}
     <section class="pg-corpo">
       <div class="wrap pg-grid">
@@ -670,10 +712,10 @@ function paginaColecao(secao, pag, colecao) {
   gerados.push(pag.rota);
 }
 
-/** Mantém cabeçalho e rodapé da home iguais aos das páginas. */
+/** Home: o index.html da raiz é o modelo; a versão final vai para a saída,
+ *  com cabeçalho, rodapé e faixa de aviso iguais aos das páginas. */
 function atualizarHome() {
-  const arq = path.join(RAIZ, "index.html");
-  const raw = fs.readFileSync(arq, "utf8");
+  const raw = fs.readFileSync(path.join(RAIZ, "index.html"), "utf8");
   const crlf = raw.includes("\r\n");
   let s = raw.replace(/\r\n/g, "\n");
   s = s.replace(/  <!--CABECALHO-->\n[\s\S]*?  <!--\/CABECALHO-->\n/, `  <!--CABECALHO-->\n${cabecalho("/")}  <!--/CABECALHO-->\n`);
@@ -682,22 +724,106 @@ function atualizarHome() {
 
   // faixa de aviso: o marcador fica logo depois do hero
   if (!s.includes("<!--AVISO-->")) s = s.replace(/(  <section class="hero">[\s\S]*?\n  <\/section>\n)/, `$1  <!--AVISO-->\n  <!--/AVISO-->\n`);
-  const faixa = AVISO ? `  <section class="aviso-faixa" data-ate="${AVISO.ate}">
+  // link do botão: só caminho do próprio site ou http(s) — nada de javascript:
+  const hrefOk = AVISO && /^(\/|https?:\/\/)/.test(AVISO.href || "") ? AVISO.href : "";
+  const faixa = AVISO ? `  <section class="aviso-faixa"${AVISO.ate ? ` data-ate="${esc(AVISO.ate)}"` : ""}>
     <div class="wrap">
       <div class="aviso-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></div>
-      <div class="aviso-txt"><p class="eyebrow">${esc(AVISO.rotulo)}</p><h2>${esc(AVISO.titulo)}</h2><p>${esc(AVISO.texto)}</p></div>
-      <a class="btn btn-white" href="${AVISO.href}">${esc(AVISO.botao)} →</a>
+      <div class="aviso-txt"><p class="eyebrow">${esc(AVISO.rotulo)}</p><h2>${esc(AVISO.titulo)}</h2>${AVISO.texto ? `<p>${esc(AVISO.texto)}</p>` : ""}</div>
+      ${hrefOk ? `<a class="btn btn-white" href="${esc(hrefOk)}">${esc(AVISO.botao || "Saiba mais")} →</a>` : ""}
     </div>
-    <script>(function(s){var f=document.currentScript.parentNode;if(new Date().toISOString().slice(0,10)>s)f.remove();})("${AVISO.ate}");</script>
+    ${/^\d{4}-\d{2}-\d{2}$/.test(AVISO.ate || "") ? `<script>(function(s){var f=document.currentScript.parentNode;var h=new Date().toLocaleDateString("sv-SE",{timeZone:"America/Sao_Paulo"});if(h>s)f.remove();})("${AVISO.ate}");</script>` : ""}
   </section>
 ` : "";
   s = s.replace(/  <!--AVISO-->\n[\s\S]*?  <!--\/AVISO-->\n/, `  <!--AVISO-->\n${faixa}  <!--/AVISO-->\n`);
-  fs.writeFileSync(arq, crlf ? s.replace(/\n/g, "\r\n") : s);
+  fs.mkdirSync(SAIDA, { recursive: true });
+  fs.writeFileSync(path.join(SAIDA, "index.html"), crlf ? s.replace(/\n/g, "\r\n") : s);
 }
 
-function main() {
+// ---------------------------------------------------------------------------
+// BANCO (o que a diretoria publica pelo painel)
+// ---------------------------------------------------------------------------
+/** Lê do PostgREST. Tabela inexistente (migração 16 não rodada) devolve null;
+ *  qualquer outra falha derruba o build — e a Vercel mantém no ar o site anterior,
+ *  em vez de publicar um site sem as publicações. */
+async function sb(caminho, opcoes = {}) {
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/${caminho}`, {
+    ...opcoes,
+    headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, "Content-Type": "application/json", ...(opcoes.headers || {}) },
+  });
+  if (r.status === 404) return null;
+  if (!r.ok) throw new Error(`Supabase ${caminho.split("?")[0]}: HTTP ${r.status} ${(await r.text()).slice(0, 200)}`);
+  return r.json();
+}
+
+function hojeSP() { return new Date().toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" }); }
+
+async function carregarBanco() {
+  const pubs = await sb("publicacoes?select=slug,titulo,resumo,conteudo,categorias,capa_url,publicado_em,origem&publicado=eq.true&order=publicado_em.desc&limit=5000");
+  if (pubs === null) {
+    console.log("banco: tabela publicacoes ainda não existe (migração 16) — usando posts.json e o aviso fixo");
+    return;
+  }
+  const importado = await sb("rpc/site_importacao_concluida", { method: "POST", body: "{}" });
+  // antes da importação, os posts migrados vêm do JSON e os do painel somam por cima
+  const base = importado ? {} : { ...POSTS };
+  let ignorados = 0;
+  for (const row of pubs) {
+    const rota = `/${row.slug}/`;
+    if (ROTAS_FIXAS.has(rota)) { avisos.push(`${rota}: publicação ignorada — o endereço é de uma página do site`); ignorados++; continue; }
+    base[rota] = {
+      tipo: "post",
+      titulo: row.titulo,
+      data: row.publicado_em,
+      categorias: (row.categorias || []).map(slug => ({ slug })),
+      capa: row.capa_url || "",
+      resumo: row.resumo || "",
+      // mesma limpeza do conteúdo migrado: tira script, atributos e iframes de fora
+      html: limpar(row.conteudo || "").html,
+    };
+  }
+  POSTS = base;
+  console.log(`banco: ${pubs.length} publicações (${importado ? "fonte única" : "somadas aos posts do JSON"})${ignorados ? `, ${ignorados} ignoradas` : ""}`);
+
+  const destaques = await sb("destaques?select=*&ativo=eq.true&order=criado_em.desc");
+  if (destaques !== null) {
+    const hoje = hojeSP();
+    const d = destaques.find(x => !x.ate || x.ate >= hoje);
+    AVISO = d ? { ate: d.ate || "", rotulo: d.rotulo, titulo: d.titulo, texto: d.texto || "", href: d.link_url || "", botao: d.botao_texto || "" } : null;
+    console.log(`banco: destaque da home ${d ? `"${d.rotulo}"` : "nenhum vigente"}`);
+  }
+
+  const docs = await sb("documentos?select=*&publicado=eq.true&order=data.desc");
+  if (docs !== null) {
+    DOCUMENTOS = docs.filter(d => /^https:\/\//.test(d.arquivo_url));
+    console.log(`banco: ${DOCUMENTOS.length} documentos`);
+  }
+}
+
+/** Arquivos estáticos que acompanham as páginas. */
+function copiarEstaticos() {
+  // cópia arquivo a arquivo: o fs.cpSync falha em pastas do Google Drive no Windows
+  const copiar = (de, para) => {
+    fs.mkdirSync(para, { recursive: true });
+    for (const e of fs.readdirSync(de, { withFileTypes: true })) {
+      const a = path.join(de, e.name), b = path.join(para, e.name);
+      if (e.isDirectory()) copiar(a, b); else fs.copyFileSync(a, b);
+    }
+  };
+  for (const pasta of ["assets", "wp-content"]) copiar(path.join(RAIZ, pasta), path.join(SAIDA, pasta));
+}
+
+async function main() {
+  // proteção: limpar a saída não pode apagar o repositório
+  if (SAIDA === RAIZ || RAIZ.startsWith(SAIDA + path.sep)) throw new Error(`SAIDA inválida: ${SAIDA}`);
+  fs.rmSync(SAIDA, { recursive: true, force: true });
+  fs.mkdirSync(SAIDA, { recursive: true });
+
+  await carregarBanco();
+  registrarRotasDinamicas();
+  copiarEstaticos();
+
   // primeiro as páginas (preenchem os resumos automáticos), depois os hubs
-  // post com slug igual a uma página do site seria sobrescrito: falha cedo
   for (const r of Object.keys(POSTS)) if (ROTAS_FIXAS.has(r)) throw new Error(`post colide com página: ${r}`);
 
   for (const s of SECOES) for (const p of s.paginas) if (p.rota && !p.colecao) paginaDeConteudo(s, p);
@@ -710,7 +836,7 @@ function main() {
   paginaContato();
   atualizarHome();
 
-  console.log(`${gerados.length} páginas geradas + home atualizada`);
+  console.log(`${gerados.length} páginas geradas + home em ${SAIDA}`);
   const unicos = [...new Set(avisos)];
   fs.writeFileSync(path.join(__dirname, "avisos.txt"), unicos.join("\n") + "\n");
   if (unicos.length) {
@@ -726,4 +852,4 @@ function main() {
   }
 }
 
-main();
+main().catch(e => { console.error("\nFALHA NA GERAÇÃO:", e.message); process.exit(1); });

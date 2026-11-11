@@ -1,3 +1,4 @@
+/o-cnm/: publicação ignorada — o endereço é de uma página do site
 /o-cnm/guias-do-clube/: imagem ausente removida (/wp-content/uploads/avatars/26/57f79e6a1835f-bpfull.jpg)
 /o-cnm/guias-do-clube/: imagem ausente removida (/wp-content/uploads/avatars/32/1468986761-bpfull.jpg)
 /o-cnm/guias-do-clube/: imagem ausente removida (/wp-content/uploads/avatars/204/5b762fa196f74-bpfull.jpg)

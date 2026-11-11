@@ -1,39 +1,169 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
   "cleanUrls": true,
   "trailingSlash": true,
   "redirects": [
-    { "source": "/home/", "destination": "/", "permanent": true },
-    { "source": "/assembleia-2026/", "destination": "/edital-de-convocacao-da-assembleia-geral-ordinaria-2-copy/", "permanent": false },
-    { "source": "/proximas-atividades/minhas-reservas/", "destination": "https://painel.niteroiense.org.br/eventos", "permanent": false },
-    { "source": "/proximas-atividades/", "destination": "/#atividades", "permanent": false },
-    { "source": "/proximas-atividades/:resto*/", "destination": "/#atividades", "permanent": false },
-    { "source": "/programacao/", "destination": "/#atividades", "permanent": false },
-    { "source": "/programacao/:resto*/", "destination": "/#atividades", "permanent": false },
-    { "source": "/minhas-mensalidades/", "destination": "https://painel.niteroiense.org.br/", "permanent": false },
-    { "source": "/editar-atividade/", "destination": "https://painel.niteroiense.org.br/eventos", "permanent": false },
-    { "source": "/novo-relatorio-de-atividade/", "destination": "https://painel.niteroiense.org.br/eventos", "permanent": false },
-    { "source": "/adicionar-relatorio-tecnico-de-atividade/", "destination": "https://painel.niteroiense.org.br/eventos", "permanent": false },
-    { "source": "/adicionar-trilha/", "destination": "https://painel.niteroiense.org.br/eventos", "permanent": false },
-    { "source": "/carrinho/", "destination": "/loja/", "permanent": false },
-    { "source": "/categoria-produto/:resto*/", "destination": "/loja/", "permanent": false },
-    { "source": "/produto/:resto*/", "destination": "/loja/", "permanent": false },
-    { "source": "/facebook/", "destination": "https://www.facebook.com/clubecnm", "permanent": true },
-    { "source": "/publicacoes/relatos/", "destination": "/categoria/relatos/", "permanent": true },
-    { "source": "/publicacoes/artigos-tecnicos/", "destination": "/categoria/artigos-tecnicos/", "permanent": true },
-    { "source": "/publicacoes/sugestoes-de-leitura/", "destination": "/categoria/sugestoes-de-leitura/", "permanent": true },
-    { "source": "/trilhas/", "destination": "/croquiteca/trilhas/", "permanent": true },
-    { "source": "/categoria/sem-categoria/", "destination": "/ultimos-posts/", "permanent": true },
-    { "source": "/categoria/:slug/page/:n/", "destination": "/categoria/:slug/", "permanent": true },
-    { "source": "/page/:n/", "destination": "/ultimos-posts/", "permanent": true },
-    { "source": "/author/:nome/", "destination": "/ultimos-posts/", "permanent": true },
-    { "source": "/tag/:tag/", "destination": "/ultimos-posts/", "permanent": true },
-    { "source": "/feed/", "destination": "/ultimos-posts/", "permanent": false },
-    { "source": "/atividades/:resto*/", "destination": "/#atividades", "permanent": false },
-    { "source": "/membros.php", "destination": "https://painel.niteroiense.org.br/login", "permanent": false },
-    { "source": "/biblioteca/:resto*/", "destination": "/publicacoes/", "permanent": false },
-    { "source": "/shared_item_category/:resto*/", "destination": "/publicacoes/", "permanent": false },
-    { "source": "/wp-admin/:resto*", "destination": "https://painel.niteroiense.org.br/login", "permanent": false },
-    { "source": "/wp-login.php", "destination": "https://painel.niteroiense.org.br/login", "permanent": false }
+    {
+      "source": "/home/",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/assembleia-2026/",
+      "destination": "/edital-de-convocacao-da-assembleia-geral-ordinaria-2-copy/",
+      "permanent": false
+    },
+    {
+      "source": "/proximas-atividades/minhas-reservas/",
+      "destination": "https://painel.niteroiense.org.br/eventos",
+      "permanent": false
+    },
+    {
+      "source": "/proximas-atividades/",
+      "destination": "/#atividades",
+      "permanent": false
+    },
+    {
+      "source": "/proximas-atividades/:resto*/",
+      "destination": "/#atividades",
+      "permanent": false
+    },
+    {
+      "source": "/programacao/",
+      "destination": "/#atividades",
+      "permanent": false
+    },
+    {
+      "source": "/programacao/:resto*/",
+      "destination": "/#atividades",
+      "permanent": false
+    },
+    {
+      "source": "/minhas-mensalidades/",
+      "destination": "https://painel.niteroiense.org.br/",
+      "permanent": false
+    },
+    {
+      "source": "/editar-atividade/",
+      "destination": "https://painel.niteroiense.org.br/eventos",
+      "permanent": false
+    },
+    {
+      "source": "/novo-relatorio-de-atividade/",
+      "destination": "https://painel.niteroiense.org.br/eventos",
+      "permanent": false
+    },
+    {
+      "source": "/adicionar-relatorio-tecnico-de-atividade/",
+      "destination": "https://painel.niteroiense.org.br/eventos",
+      "permanent": false
+    },
+    {
+      "source": "/adicionar-trilha/",
+      "destination": "https://painel.niteroiense.org.br/eventos",
+      "permanent": false
+    },
+    {
+      "source": "/carrinho/",
+      "destination": "/loja/",
+      "permanent": false
+    },
+    {
+      "source": "/categoria-produto/:resto*/",
+      "destination": "/loja/",
+      "permanent": false
+    },
+    {
+      "source": "/produto/:resto*/",
+      "destination": "/loja/",
+      "permanent": false
+    },
+    {
+      "source": "/facebook/",
+      "destination": "https://www.facebook.com/clubecnm",
+      "permanent": true
+    },
+    {
+      "source": "/publicacoes/relatos/",
+      "destination": "/categoria/relatos/",
+      "permanent": true
+    },
+    {
+      "source": "/publicacoes/artigos-tecnicos/",
+      "destination": "/categoria/artigos-tecnicos/",
+      "permanent": true
+    },
+    {
+      "source": "/publicacoes/sugestoes-de-leitura/",
+      "destination": "/categoria/sugestoes-de-leitura/",
+      "permanent": true
+    },
+    {
+      "source": "/trilhas/",
+      "destination": "/croquiteca/trilhas/",
+      "permanent": true
+    },
+    {
+      "source": "/categoria/sem-categoria/",
+      "destination": "/ultimos-posts/",
+      "permanent": true
+    },
+    {
+      "source": "/categoria/:slug/page/:n/",
+      "destination": "/categoria/:slug/",
+      "permanent": true
+    },
+    {
+      "source": "/page/:n/",
+      "destination": "/ultimos-posts/",
+      "permanent": true
+    },
+    {
+      "source": "/author/:nome/",
+      "destination": "/ultimos-posts/",
+      "permanent": true
+    },
+    {
+      "source": "/tag/:tag/",
+      "destination": "/ultimos-posts/",
+      "permanent": true
+    },
+    {
+      "source": "/feed/",
+      "destination": "/ultimos-posts/",
+      "permanent": false
+    },
+    {
+      "source": "/atividades/:resto*/",
+      "destination": "/#atividades",
+      "permanent": false
+    },
+    {
+      "source": "/membros.php",
+      "destination": "https://painel.niteroiense.org.br/login",
+      "permanent": false
+    },
+    {
+      "source": "/biblioteca/:resto*/",
+      "destination": "/publicacoes/",
+      "permanent": false
+    },
+    {
+      "source": "/shared_item_category/:resto*/",
+      "destination": "/publicacoes/",
+      "permanent": false
+    },
+    {
+      "source": "/wp-admin/:resto*",
+      "destination": "https://painel.niteroiense.org.br/login",
+      "permanent": false
+    },
+    {
+      "source": "/wp-login.php",
+      "destination": "https://painel.niteroiense.org.br/login",
+      "permanent": false
+    }
   ]
 }

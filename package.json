@@ -1,0 +1,14 @@
+{
+  "name": "cnm-site",
+  "private": true,
+  "description": "Site institucional do CNM, gerado por _fonte/gerar.cjs",
+  "scripts": {
+    "build": "node _fonte/gerar.cjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "node-html-parser": "6.1.13"
+  }
+}
