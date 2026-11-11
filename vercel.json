@@ -18,6 +18,18 @@
     { "source": "/categoria-produto/:resto*/", "destination": "/loja/", "permanent": false },
     { "source": "/produto/:resto*/", "destination": "/loja/", "permanent": false },
     { "source": "/facebook/", "destination": "https://www.facebook.com/clubecnm", "permanent": true },
+    { "source": "/publicacoes/relatos/", "destination": "/categoria/relatos/", "permanent": true },
+    { "source": "/publicacoes/artigos-tecnicos/", "destination": "/categoria/artigos-tecnicos/", "permanent": true },
+    { "source": "/publicacoes/sugestoes-de-leitura/", "destination": "/categoria/sugestoes-de-leitura/", "permanent": true },
+    { "source": "/trilhas/", "destination": "/croquiteca/trilhas/", "permanent": true },
+    { "source": "/categoria/sem-categoria/", "destination": "/ultimos-posts/", "permanent": true },
+    { "source": "/categoria/:slug/page/:n/", "destination": "/categoria/:slug/", "permanent": true },
+    { "source": "/page/:n/", "destination": "/ultimos-posts/", "permanent": true },
+    { "source": "/author/:nome/", "destination": "/ultimos-posts/", "permanent": true },
+    { "source": "/tag/:tag/", "destination": "/ultimos-posts/", "permanent": true },
+    { "source": "/feed/", "destination": "/ultimos-posts/", "permanent": false },
+    { "source": "/biblioteca/:resto*/", "destination": "/publicacoes/", "permanent": false },
+    { "source": "/shared_item_category/:resto*/", "destination": "/publicacoes/", "permanent": false },
     { "source": "/wp-admin/:resto*", "destination": "https://painel.niteroiense.org.br/login", "permanent": false },
     { "source": "/wp-login.php", "destination": "https://painel.niteroiense.org.br/login", "permanent": false }
   ]

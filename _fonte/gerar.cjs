@@ -13,6 +13,24 @@ const { parse } = require("node-html-parser");
 
 const RAIZ = path.resolve(__dirname, "..");
 const CONTEUDO = require("./conteudo/paginas.json");
+const POSTS = require("./conteudo/posts.json");
+const CROQUIS = require("./conteudo/croquis.json");
+const TRILHAS = require("./conteudo/trilhas.json");
+
+// Categorias dos posts que ganham página própria, em /categoria/<slug>/ (URL do WP).
+// "sem-categoria" não tem página: esses posts aparecem só no arquivo completo.
+const CATEGORIAS = [
+  { slug: "noticias", nome: "Notícias", intro: "Comunicados, eventos e novidades do clube." },
+  { slug: "relatos", nome: "Relatos", intro: "Sócios contam como foram trilhas, escaladas e viagens." },
+  { slug: "artigos-tecnicos", nome: "Artigos Técnicos", intro: "Técnica, segurança e equipamento para a prática do montanhismo." },
+  { slug: "artigos", nome: "Artigos", intro: "Textos de opinião e reflexão sobre montanhismo." },
+  { slug: "sugestoes-de-leitura", nome: "Sugestões de Leitura", intro: "Livros sobre montanha, escalada e aventura indicados pelos sócios." },
+  { slug: "social", nome: "Social", intro: "Confraternizações, festas e encontros do clube." },
+  { slug: "cursos", nome: "Cursos", intro: "Notícias sobre os cursos do CNM: turmas, formaturas e novidades." },
+  { slug: "meio-ambiente", nome: "Meio Ambiente", intro: "Mutirões, campanhas e notícias ambientais." },
+  { slug: "palestras", nome: "Palestras", intro: "Palestras e rodas de conversa promovidas pelo clube." },
+  { slug: "historia", nome: "História", intro: "Registros da história do clube." },
+];
 const PAINEL = "https://painel.niteroiense.org.br";
 const WHATS = "https://wa.me/5521966634040";
 const EMAIL = "cnm@niteroiense.org.br";
@@ -69,11 +87,26 @@ const SECOES = [
   },
   {
     id: "publicacoes", rota: "/publicacoes/", titulo: "Publicações",
-    intro: "Boletins, documentos oficiais e guias produzidos pelo clube ao longo dos anos.",
+    intro: "Notícias, relatos, artigos, boletins e documentos produzidos pelo clube desde 2006.",
     paginas: [
+      { link: "/categoria/noticias/", titulo: "Notícias", resumo: "Comunicados, eventos e novidades do clube." },
+      { link: "/categoria/relatos/", titulo: "Relatos", resumo: "Sócios contam como foram trilhas, escaladas e viagens." },
+      { link: "/categoria/artigos-tecnicos/", titulo: "Artigos Técnicos", resumo: "Técnica, segurança e equipamento." },
+      { link: "/categoria/sugestoes-de-leitura/", titulo: "Sugestões de Leitura", resumo: "Livros de montanha indicados pelos sócios." },
       { rota: "/publicacoes/boletins-cnm/", titulo: "Boletins CNM", resumo: "O CNM Informa: as edições do boletim do clube." },
       { rota: "/publicacoes/documentos/", titulo: "Documentos", resumo: "Atas, demonstrativos financeiros e documentos institucionais." },
       { rota: "/publicacoes/guias-de-trilhas-e-escaladas/", titulo: "Guias de Trilhas e Escaladas", resumo: "Guias e croquis de trilhas e vias de escalada." },
+      { link: "/croquiteca/", titulo: "Croquiteca", resumo: "Croquis de vias de escalada e fichas de trilhas." },
+      { link: "/ultimos-posts/", titulo: "Todas as publicações", resumo: "O arquivo completo, do mais recente ao mais antigo." },
+    ],
+  },
+  {
+    id: "croquiteca", rota: "/croquiteca/", titulo: "Croquiteca",
+    intro: "Croquis de vias de escalada conquistadas e repetidas pelo clube, e fichas das trilhas com esforço, risco e orientação.",
+    paginas: [
+      { rota: "/croquiteca/vias-de-escalada/", titulo: "Vias de Escalada", colecao: "croquis", resumo: "Croquis com grau, localização, conquistadores e ano." },
+      { rota: "/croquiteca/trilhas/", titulo: "Trilhas", colecao: "trilhas", resumo: "Fichas de trilhas com duração, percurso, desnível e classificação." },
+      { link: "/publicacoes/guias-de-trilhas-e-escaladas/", titulo: "Guias de Trilhas e Escaladas", resumo: "Guias publicados em PDF." },
     ],
   },
   {
@@ -159,6 +192,10 @@ function existeLocal(rel) { try { return fs.statSync(path.join(RAIZ, decodeURICo
 const ROTAS = new Set(["/", "/contato/"]);
 SECOES.forEach(s => { ROTAS.add(s.rota); s.paginas.forEach(p => p.rota && ROTAS.add(p.rota)); });
 AVULSAS.forEach(a => ROTAS.add(a.rota));
+const ROTAS_FIXAS = new Set(ROTAS);
+[POSTS, CROQUIS, TRILHAS].forEach(col => Object.keys(col).forEach(r => ROTAS.add(r)));
+CATEGORIAS.forEach(c => ROTAS.add(`/categoria/${c.slug}/`));
+ROTAS.add("/ultimos-posts/");
 
 const avisos = [];
 
@@ -462,6 +499,166 @@ function paginaContato() {
   gerados.push("/contato/");
 }
 
+// ---------------------------------------------------------------------------
+// POSTS, CATEGORIAS E CROQUITECA
+// ---------------------------------------------------------------------------
+const MESES = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+function dataExtenso(iso) {
+  if (!iso) return "";
+  const [a, m, d] = iso.split("-").map(Number);
+  return `${d} de ${MESES[m - 1]} de ${a}`;
+}
+function tituloLimpo(t) { return t.replace(/\s*[|–-]\s*CNM\s*$/i, "").trim(); }
+function catPrincipal(post) {
+  const slugs = post.categorias.map(c => c.slug);
+  return CATEGORIAS.find(c => slugs.includes(c.slug)) || null;
+}
+/** Capa local (ou nada, se o arquivo não foi migrado). */
+function capaLocal(url) {
+  if (!url) return "";
+  const p = url.replace(/^https?:\/\/(www\.)?niteroiense\.org\.br/i, "").split("?")[0];
+  return p.startsWith("/wp-content/uploads/") && existeLocal(p.slice(1)) ? p : "";
+}
+function postsOrdenados() {
+  return Object.entries(POSTS).map(([rota, p]) => ({ rota, ...p, titulo: tituloLimpo(p.titulo) }))
+    .sort((a, b) => b.data.localeCompare(a.data));
+}
+
+function cartaoPost(p) {
+  const capa = capaLocal(p.capa);
+  const cat = catPrincipal(p);
+  return `<a class="cartao post reveal" href="${p.rota}">${capa ? `<span class="capa" style="background-image:url('${capa}')"></span>` : `<span class="capa vazia"></span>`}<span class="meta-post">${cat ? esc(cat.nome) + " · " : ""}${dataExtenso(p.data)}</span><h3>${esc(p.titulo)}</h3><p>${esc(resumir(primeiroParagrafo(p.html), 130))}</p></a>`;
+}
+
+function paginaCategoria(cat) {
+  const lista = postsOrdenados().filter(p => p.categorias.some(c => c.slug === cat.slug));
+  const rota = `/categoria/${cat.slug}/`;
+  const html = documento({
+    rota, titulo: cat.nome, descricao: cat.intro,
+    corpoHtml: `${heroPagina({ trilha: [{ href: "/publicacoes/", titulo: "Publicações" }, { titulo: cat.nome }], eyebrow: `${lista.length} publicações`, titulo: cat.nome, lead: cat.intro })}
+    <section class="pg-corpo">
+      <div class="wrap">
+        <div class="hub posts">
+          ${lista.map(cartaoPost).join("\n          ")}
+        </div>
+      </div>
+    </section>`,
+  });
+  escrever(rota, html);
+  gerados.push(rota);
+}
+
+function paginaArquivo() {
+  const lista = postsOrdenados();
+  const porAno = {};
+  lista.forEach(p => (porAno[p.data.slice(0, 4)] ||= []).push(p));
+  const anos = Object.keys(porAno).sort().reverse();
+  const corpo = anos.map(a => `<section class="ano"><h2>${a}</h2><ul class="arquivo">${porAno[a].map(p => {
+    const cat = catPrincipal(p);
+    return `<li><time datetime="${p.data}">${p.data.split("-").reverse().slice(0, 2).join("/")}</time><a href="${p.rota}">${esc(p.titulo)}</a>${cat ? `<span class="tag">${esc(cat.nome)}</span>` : ""}</li>`;
+  }).join("")}</ul></section>`).join("");
+  const filtros = CATEGORIAS.filter(c => lista.some(p => p.categorias.some(x => x.slug === c.slug)))
+    .map(c => `<a class="chip" href="/categoria/${c.slug}/">${esc(c.nome)}</a>`).join("");
+  const html = documento({
+    rota: "/ultimos-posts/", titulo: "Todas as publicações",
+    descricao: `Arquivo completo de publicações do CNM: ${lista.length} posts de ${anos[anos.length - 1]} a ${anos[0]}.`,
+    corpoHtml: `${heroPagina({ trilha: [{ href: "/publicacoes/", titulo: "Publicações" }, { titulo: "Todas as publicações" }], eyebrow: `${lista.length} publicações · ${anos[anos.length - 1]}–${anos[0]}`, titulo: "Todas as publicações", lead: "Do mais recente ao mais antigo. Filtre por categoria:" })}
+    <section class="pg-corpo">
+      <div class="wrap">
+        <div class="chips" style="margin:0 0 30px;">${filtros}</div>
+        <div class="prosa arquivo-wrap">${corpo}</div>
+      </div>
+    </section>`,
+  });
+  escrever("/ultimos-posts/", html);
+  gerados.push("/ultimos-posts/");
+}
+
+function paginaPost(p) {
+  const cat = catPrincipal(p);
+  let corpo = adaptarConteudo(p.html, p.rota);
+  const capa = capaLocal(p.capa);
+  // a capa só entra se o texto ainda não mostra a mesma imagem
+  const raizArquivo = capa ? path.basename(capa).replace(/(-\d+x\d+)?\.\w+$/, "") : "";
+  if (capa && !corpo.includes(raizArquivo)) corpo = `<img class="capa-post" src="${capa}" alt="" loading="lazy">` + corpo;
+  const relacionados = postsOrdenados().filter(x => x.rota !== p.rota && cat && x.categorias.some(c => c.slug === cat.slug)).slice(0, 5);
+  const trilha = [{ href: "/publicacoes/", titulo: "Publicações" }];
+  if (cat) trilha.push({ href: `/categoria/${cat.slug}/`, titulo: cat.nome });
+  trilha.push({ titulo: p.titulo });
+  const lat = `<aside class="lateral">${relacionados.length ? `<div class="lat-box"><h4>Mais em ${esc(cat.nome)}</h4><nav>${relacionados.map(r => `<a href="${r.rota}">${esc(r.titulo)}</a>`).join("")}</nav></div>` : ""}
+          <div class="lat-cta"><h4>Venha para o CNM</h4><p>Reunião social toda quinta, das 19h30 às 22h, na sede. Aberta a quem quiser conhecer.</p><a class="btn btn-white" href="/como-participar/">Como participar</a></div>
+        </aside>`;
+  const html = documento({
+    rota: p.rota, titulo: p.titulo, descricao: primeiroParagrafo(corpo),
+    corpoHtml: `${heroPagina({ trilha, eyebrow: [cat ? cat.nome : "Publicação", dataExtenso(p.data)].filter(Boolean).join(" · "), titulo: p.titulo })}
+    <section class="pg-corpo">
+      <div class="wrap pg-grid">
+        <article class="prosa">${corpo}</article>
+        ${lat}
+      </div>
+    </section>`,
+  });
+  escrever(p.rota, html);
+  gerados.push(p.rota);
+}
+
+/** Croqui: tira o bloco duplicado do tema (rótulos soltos + link cru da imagem). */
+function corpoCroqui(html) {
+  const fonte = (html.match(/<p>Fonte:[^<]*<\/p>/) || [""])[0];
+  const img = (html.match(/<img [^>]*>/) || [""])[0];
+  const info = html.indexOf("<h2>Informações do Croqui</h2>");
+  const resto = info >= 0 ? html.slice(info) : html;
+  const figura = img ? `<figure class="croqui">${img.replace("<img ", '<img alt="Croqui da via" ')}<figcaption>Clique na imagem para ampliar.</figcaption></figure>` : "";
+  const src = (img.match(/src="([^"]*)"/) || [])[1];
+  return fonte + (src ? `<a href="${src}">${figura}</a>` : figura) + resto;
+}
+function campo(html, rotulo) {
+  const m = html.match(new RegExp(`<strong>${rotulo}:?</strong>\\s*([^<]*)`));
+  return m ? m[1].trim() : "";
+}
+
+function paginaColecao(secao, pag, colecao) {
+  const itens = Object.entries(colecao).map(([rota, x]) => ({ rota, ...x, titulo: tituloLimpo(x.titulo) }))
+    .sort((a, b) => a.titulo.localeCompare(b.titulo, "pt-BR"));
+  // cada item vira página
+  for (const x of itens) {
+    let corpo = x.tipo === "croqui" ? corpoCroqui(x.html) : x.html.replace(/<li><strong>Descrição:<\/strong>[\s\S]*?<\/li>/, "");
+    corpo = adaptarConteudo(corpo, x.rota);
+    const html = documento({
+      rota: x.rota, titulo: x.titulo, descricao: x.tipo === "croqui" ? `Croqui da via ${x.titulo}${campo(x.html, "Grau") ? ", " + campo(x.html, "Grau") : ""}${campo(x.html, "Montanha") ? " — " + campo(x.html, "Montanha") : ""}.` : primeiroParagrafo(corpo),
+      corpoHtml: `${heroPagina({ trilha: [{ href: secao.rota, titulo: secao.titulo }, { href: pag.rota, titulo: pag.titulo }, { titulo: x.titulo }], eyebrow: pag.titulo, titulo: x.titulo })}
+    <section class="pg-corpo">
+      <div class="wrap pg-grid">
+        <article class="prosa">${corpo}</article>
+        ${lateral(secao, pag.rota)}
+      </div>
+    </section>`,
+    });
+    escrever(x.rota, html);
+    gerados.push(x.rota);
+  }
+  // e a listagem
+  const cartoes = itens.map(x => {
+    const linha = x.tipo === "croqui"
+      ? [campo(x.html, "Grau"), campo(x.html, "Montanha")].filter(Boolean).join(" · ")
+      : [campo(x.html, "Local"), campo(x.html, "Esforço") && "Esforço " + campo(x.html, "Esforço").toLowerCase()].filter(Boolean).join(" · ");
+    return `<a class="cartao reveal" href="${x.rota}"><h3>${esc(x.titulo)}</h3>${linha ? `<p>${esc(linha)}</p>` : ""}<span class="ir">Ver ${x.tipo === "croqui" ? "croqui" : "ficha"} →</span></a>`;
+  }).join("\n          ");
+  const html = documento({
+    rota: pag.rota, titulo: pag.titulo, descricao: pag.resumo,
+    corpoHtml: `${heroPagina({ trilha: [{ href: secao.rota, titulo: secao.titulo }, { titulo: pag.titulo }], eyebrow: `Croquiteca · ${itens.length} ${pag.colecao === "croquis" ? "vias" : "trilhas"}`, titulo: pag.titulo, lead: pag.resumo })}
+    <section class="pg-corpo">
+      <div class="wrap">
+        <div class="hub">
+          ${cartoes}
+        </div>
+      </div>
+    </section>`,
+  });
+  escrever(pag.rota, html);
+  gerados.push(pag.rota);
+}
+
 /** Mantém cabeçalho e rodapé da home iguais aos das páginas. */
 function atualizarHome() {
   const arq = path.join(RAIZ, "index.html");
@@ -476,17 +673,32 @@ function atualizarHome() {
 
 function main() {
   // primeiro as páginas (preenchem os resumos automáticos), depois os hubs
-  for (const s of SECOES) for (const p of s.paginas) if (p.rota) paginaDeConteudo(s, p);
+  // post com slug igual a uma página do site seria sobrescrito: falha cedo
+  for (const r of Object.keys(POSTS)) if (ROTAS_FIXAS.has(r)) throw new Error(`post colide com página: ${r}`);
+
+  for (const s of SECOES) for (const p of s.paginas) if (p.rota && !p.colecao) paginaDeConteudo(s, p);
+  for (const s of SECOES) for (const p of s.paginas) if (p.colecao) paginaColecao(s, p, p.colecao === "croquis" ? CROQUIS : TRILHAS);
   for (const a of AVULSAS) paginaDeConteudo(null, a);
+  for (const p of postsOrdenados()) paginaPost(p);
+  for (const c of CATEGORIAS) paginaCategoria(c);
+  paginaArquivo();
   for (const s of SECOES) paginaHub(s);
   paginaContato();
   atualizarHome();
 
   console.log(`${gerados.length} páginas geradas + home atualizada`);
   const unicos = [...new Set(avisos)];
+  fs.writeFileSync(path.join(__dirname, "avisos.txt"), unicos.join("\n") + "\n");
   if (unicos.length) {
-    console.log(`\n${unicos.length} avisos:`);
-    unicos.forEach(a => console.log("  - " + a));
+    const porPagina = {}, porDestino = {};
+    for (const a of unicos) {
+      const [pg, resto] = a.split(": ");
+      porPagina[pg] = (porPagina[pg] || 0) + 1;
+      const destino = (resto.match(/\(([^)]*)\)/) || [, ""])[1].split("/").slice(0, 2).join("/");
+      porDestino[destino] = (porDestino[destino] || 0) + 1;
+    }
+    const top = o => Object.entries(o).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([k, v]) => `    ${String(v).padStart(6)}  ${k}`).join("\n");
+    console.log(`\n${unicos.length} avisos (lista em _fonte/avisos.txt)\n  páginas com mais avisos:\n${top(porPagina)}\n  destinos mais comuns:\n${top(porDestino)}`);
   }
 }
 
