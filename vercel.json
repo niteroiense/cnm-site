@@ -28,6 +28,8 @@
     { "source": "/author/:nome/", "destination": "/ultimos-posts/", "permanent": true },
     { "source": "/tag/:tag/", "destination": "/ultimos-posts/", "permanent": true },
     { "source": "/feed/", "destination": "/ultimos-posts/", "permanent": false },
+    { "source": "/atividades/:resto*/", "destination": "/#atividades", "permanent": false },
+    { "source": "/membros.php", "destination": "https://painel.niteroiense.org.br/login", "permanent": false },
     { "source": "/biblioteca/:resto*/", "destination": "/publicacoes/", "permanent": false },
     { "source": "/shared_item_category/:resto*/", "destination": "/publicacoes/", "permanent": false },
     { "source": "/wp-admin/:resto*", "destination": "https://painel.niteroiense.org.br/login", "permanent": false },
