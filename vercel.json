@@ -4,6 +4,7 @@
   "trailingSlash": true,
   "redirects": [
     { "source": "/home/", "destination": "/", "permanent": true },
+    { "source": "/assembleia-2026/", "destination": "/edital-de-convocacao-da-assembleia-geral-ordinaria-2-copy/", "permanent": false },
     { "source": "/proximas-atividades/minhas-reservas/", "destination": "https://painel.niteroiense.org.br/eventos", "permanent": false },
     { "source": "/proximas-atividades/", "destination": "/#atividades", "permanent": false },
     { "source": "/proximas-atividades/:resto*/", "destination": "/#atividades", "permanent": false },

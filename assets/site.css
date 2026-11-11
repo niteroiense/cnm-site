@@ -39,9 +39,9 @@ p{margin:0;}
 
 /* NAV */
 header.nav{position:sticky;top:0;z-index:50;backdrop-filter:saturate(1.4) blur(10px);background:color-mix(in srgb,var(--bg) 84%,transparent);border-bottom:1px solid var(--line);}
-.nav-inner{display:flex;align-items:center;justify-content:space-between;height:68px;gap:18px;}
+.nav-inner{display:flex;align-items:center;justify-content:space-between;height:76px;gap:18px;}
 .brand{display:flex;align-items:center;gap:11px;font-weight:800;}
-.brand img{width:42px;height:42px;object-fit:contain;flex:none;}
+.brand img{width:58px;height:58px;object-fit:contain;flex:none;display:block;}
 .brand b{font-size:1.05rem;color:var(--navy-700);line-height:1;}
 :root[data-theme="dark"] .brand b{color:#EAF1FB;}
 @media (prefers-color-scheme:dark){.brand b{color:#EAF1FB;}}
@@ -357,3 +357,15 @@ ul.arquivo .tag{flex:none;font-size:.72rem;font-weight:700;color:var(--ink-soft)
 .prosa figure.croqui{margin:1.4em 0;}
 .prosa figure.croqui img{display:block;max-height:80vh;width:auto;margin:0 auto;border:1px solid var(--line);}
 .prosa figure.croqui figcaption{text-align:center;font-size:.82rem;color:var(--ink-soft);margin-top:8px;}
+
+/* FAIXA DE AVISO (home) — controlada por AVISO em _fonte/gerar.cjs */
+.aviso-faixa{background:var(--surface);border-bottom:1px solid var(--line);}
+.aviso-faixa .wrap{display:flex;align-items:center;gap:22px;padding-top:26px;padding-bottom:26px;}
+.aviso-faixa .aviso-ic{flex:none;width:54px;height:54px;border-radius:14px;display:grid;place-items:center;background:linear-gradient(135deg,var(--navy-700),var(--navy-900));color:#fff;}
+.aviso-faixa .aviso-ic svg{width:26px;height:26px;}
+.aviso-faixa .aviso-txt{flex:1;min-width:0;}
+.aviso-faixa h2{font-size:clamp(1.15rem,2.2vw,1.45rem);margin-top:4px;}
+.aviso-faixa .aviso-txt p:not(.eyebrow){margin-top:6px;color:var(--ink-soft);font-size:.95rem;max-width:80ch;}
+.aviso-faixa .btn-white{flex:none;background:var(--navy-700);color:#fff;}
+.aviso-faixa .btn-white:hover{background:var(--navy-900);}
+@media (max-width:760px){.aviso-faixa .wrap{flex-direction:column;align-items:flex-start;gap:14px;} .aviso-faixa .aviso-ic{display:none;}}
