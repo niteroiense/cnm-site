@@ -1,0 +1,24 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "cleanUrls": true,
+  "trailingSlash": true,
+  "redirects": [
+    { "source": "/home/", "destination": "/", "permanent": true },
+    { "source": "/proximas-atividades/minhas-reservas/", "destination": "https://painel.niteroiense.org.br/eventos", "permanent": false },
+    { "source": "/proximas-atividades/", "destination": "/#atividades", "permanent": false },
+    { "source": "/proximas-atividades/:resto*/", "destination": "/#atividades", "permanent": false },
+    { "source": "/programacao/", "destination": "/#atividades", "permanent": false },
+    { "source": "/programacao/:resto*/", "destination": "/#atividades", "permanent": false },
+    { "source": "/minhas-mensalidades/", "destination": "https://painel.niteroiense.org.br/", "permanent": false },
+    { "source": "/editar-atividade/", "destination": "https://painel.niteroiense.org.br/eventos", "permanent": false },
+    { "source": "/novo-relatorio-de-atividade/", "destination": "https://painel.niteroiense.org.br/eventos", "permanent": false },
+    { "source": "/adicionar-relatorio-tecnico-de-atividade/", "destination": "https://painel.niteroiense.org.br/eventos", "permanent": false },
+    { "source": "/adicionar-trilha/", "destination": "https://painel.niteroiense.org.br/eventos", "permanent": false },
+    { "source": "/carrinho/", "destination": "/loja/", "permanent": false },
+    { "source": "/categoria-produto/:resto*/", "destination": "/loja/", "permanent": false },
+    { "source": "/produto/:resto*/", "destination": "/loja/", "permanent": false },
+    { "source": "/facebook/", "destination": "https://www.facebook.com/clubecnm", "permanent": true },
+    { "source": "/wp-admin/:resto*", "destination": "https://painel.niteroiense.org.br/login", "permanent": false },
+    { "source": "/wp-login.php", "destination": "https://painel.niteroiense.org.br/login", "permanent": false }
+  ]
+}
