@@ -28,11 +28,12 @@ const problemas = [];
 for (const [rota, p] of Object.entries(posts)) {
   const slug = rota.replace(/^\/|\/$/g, "");
   if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug)) { problemas.push(slug); continue; }
+  if (!p.titulo || !p.titulo.trim()) { problemas.push(`${slug} (sem título)`); continue; }
   const cats = [...new Set(p.categorias.map(c => c.slug))];
   linhas.push(`(${texto(slug)}, ${texto(p.titulo)}, ${texto(p.html)}, ${arr(cats)}, ${texto(p.capa)}, true, DATE '${p.data}', 'wordpress')`);
 }
 if (problemas.length) {
-  console.error("slugs fora do padrão (não importados):", problemas.join(" "));
+  console.error("posts com problema (nada foi gerado):", problemas.join(" "));
   process.exit(1);
 }
 
