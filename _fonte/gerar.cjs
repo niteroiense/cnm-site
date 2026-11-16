@@ -156,7 +156,17 @@ const SECOES = [
   },
 ];
 
+const POLITICAS = require("./politicas.cjs");
+
 const AVULSAS = [
+  { rota: "/politica-de-privacidade/", titulo: "Política de Privacidade", fonte: null,
+    lead: "Como o CNM trata os dados pessoais no site e no painel do sócio.",
+    resumo: "Como o Clube Niteroiense de Montanhismo trata dados pessoais no site e no painel do sócio, conforme a LGPD.",
+    html: POLITICAS.privacidade },
+  { rota: "/politica-de-cookies/", titulo: "Política de Cookies", fonte: null,
+    lead: "O que fica guardado no seu navegador e como escolher.",
+    resumo: "Quais cookies e dados de navegador o site e o painel do CNM usam, e como mudar a sua escolha.",
+    html: POLITICAS.cookies },
   { rota: "/loja/", titulo: "Loja", fonte: null, lead: "Anuidade, cursos e os produtos da CNMuamba.",
     html: `<p>A loja online do site antigo está sendo integrada ao <strong>painel do sócio</strong>. Enquanto essa migração não termina, anuidade, inscrição em cursos e produtos da CNMuamba são tratados diretamente com a diretoria.</p>` +
       acao("Fale com a diretoria", "Diga o que você procura — anuidade, curso ou produto — e a diretoria responde por lá.",
@@ -376,7 +386,8 @@ function rodape() {
     </div>
     <div class="foot-bar">
       <a class="to-top" href="#" aria-label="Voltar ao topo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg></a>
-      © 2026 · CNM — Clube Niteroiense de Montanhismo
+      <span>© 2026 · CNM — Clube Niteroiense de Montanhismo</span>
+      <nav class="foot-legal" aria-label="Privacidade"><a href="/politica-de-privacidade/">Política de privacidade</a><a href="/politica-de-cookies/">Política de cookies</a><a href="#" data-cookies>Preferências de cookies</a></nav>
     </div>
   </footer>
 `;
@@ -385,7 +396,20 @@ function rodape() {
 /** URL absoluta — exigida pelas prévias de link do WhatsApp e do Facebook. */
 function absoluta(u) { return /^https?:\/\//.test(u) ? u : SITE_URL + (u.startsWith("/") ? u : "/" + u); }
 
+/** Mapas e vídeos de terceiros só carregam com consentimento (barra de cookies,
+ *  em assets/site.js): o src vira data-src. YouTube passa para o domínio
+ *  "nocookie" do próprio YouTube. */
+function bloquearTerceiros(html) {
+  return html.replace(/<iframe\b([^>]*?)\ssrc="(https:\/\/(?:www\.)?(?:google\.com\/maps|youtube\.com|youtube-nocookie\.com)[^"]*)"([^>]*)>/gi,
+    (_, antes, url, depois) => {
+      const servico = /google\.com\/maps/i.test(url) ? "Google Maps" : "YouTube";
+      const u = url.replace(/^https:\/\/(www\.)?youtube\.com\/embed\//i, "https://www.youtube-nocookie.com/embed/");
+      return `<iframe${antes} data-src="${u}" data-terceiro="${servico}"${depois}>`;
+    });
+}
+
 function documento({ rota, titulo, descricao, corpoHtml, imagem, tipo = "website" }) {
+  corpoHtml = bloquearTerceiros(corpoHtml);
   const desc = esc(resumir(descricao || "", 158));
   return `<!doctype html>
 <html lang="pt-BR">
@@ -418,10 +442,20 @@ ${rodape()}</div>
 `;
 }
 
-function heroPagina({ trilha, eyebrow, titulo, lead }) {
+// Foto do topo por seção (álbuns enviados pelo Ricardo em 11/11/2026), em
+// assets/hero/<id>.jpg. Seção sem foto fica com a faixa azul.
+const FOTOS_HERO = new Set(["o-cnm", "como-participar", "cursos", "publicacoes", "croquiteca",
+  "meio-ambiente", "programa-de-relacionamento", "parceiros", "contato"]);
+function fotoDaRota(rota) {
+  const id = (rota || "").split("/")[1];
+  return FOTOS_HERO.has(id) ? `/assets/hero/${id}.jpg` : null;
+}
+
+function heroPagina({ trilha, eyebrow, titulo, lead, foto }) {
   const migalhas = [`<a href="/">Início</a>`, ...trilha.map(t => t.href ? `<a href="${t.href}">${esc(t.titulo)}</a>` : `<span aria-current="page">${esc(t.titulo)}</span>`)]
     .join(` <span aria-hidden="true">›</span> `);
-  return `    <section class="pg-hero">
+  const img = foto === undefined ? fotoDaRota(trilha[0] && trilha[0].href) : foto;
+  return `    <section class="pg-hero${img ? " com-foto" : ""}"${img ? ` style="--foto:url('${img}')"` : ""}>
       <div class="wrap">
         <nav class="trilha" aria-label="Você está em">${migalhas}</nav>
         ${eyebrow ? `<p class="eyebrow">${esc(eyebrow)}</p>` : ""}
@@ -461,11 +495,34 @@ function listaDocumentos(rota) {
     `<span class="doc-data">${dataExtenso(d.data)}</span>${d.descricao ? `<p>${esc(d.descricao)}</p>` : ""}</li>`).join("")}</ul>`;
 }
 
+const brl = n => Number(n).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+/** Caixa "Próxima turma" no topo da página do curso (turma aberta ligada no painel). */
+function caixaTurma(t) {
+  if (!t) return "";
+  const periodo = t.data_fim && t.data_fim !== t.data_inicio
+    ? `de ${dataExtenso(t.data_inicio)} a ${dataExtenso(t.data_fim)}` : dataExtenso(t.data_inicio);
+  const itens = [
+    `<li><b>Quando:</b> ${periodo}${t.horario_inicio ? `, às ${t.horario_inicio.slice(0, 5).replace(":", "h")}` : ""}</li>`,
+    t.local ? `<li><b>Onde:</b> ${esc(t.local)}</li>` : "",
+    t.vagas_total > 0 ? `<li><b>Vagas:</b> ${t.vagas_disponiveis > 0 ? `${t.vagas_disponiveis} de ${t.vagas_total} disponíveis` : "esgotadas — entre na lista de espera"}</li>` : "",
+    Number(t.preco_associado) > 0 || Number(t.preco_publico) > 0
+      ? `<li><b>Valor:</b> ${Number(t.preco_associado) > 0 ? `${brl(t.preco_associado)} para sócios` : ""}${Number(t.preco_associado) > 0 && Number(t.preco_publico) > 0 ? " · " : ""}${Number(t.preco_publico) > 0 ? `${brl(t.preco_publico)} para o público` : ""}${t.inclui_equipamento ? " (equipamento incluso)" : ""}</li>` : "",
+  ].join("");
+  const botoes = t.vagas_disponiveis > 0
+    ? `<a class="btn btn-green" href="${PAINEL}/cursos" target="_blank" rel="noopener">Inscrever-se pelo painel</a>${btnWhats("Tirar dúvidas", `Olá! Tenho interesse na próxima turma: ${t.titulo}.`)}`
+    : `<a class="btn btn-green" href="/cursos/lista-de-espera-cursos/">Lista de espera</a>`;
+  return `<div class="turma"><p class="eyebrow">Próxima turma</p><h3>${esc(t.titulo)}</h3><ul>${itens}</ul>${t.descricao ? `<p>${esc(t.descricao).replace(/\n/g, "<br>")}</p>` : ""}<div class="linha">${botoes}</div></div>`;
+}
+
 function paginaDeConteudo(secao, p) {
-  const fonte = p.fonte === undefined ? p.rota : p.fonte;
+  // página de curso vinda do painel (tabela cursos_paginas)
+  const doBanco = p.conteudoBanco !== undefined;
+  const fonte = doBanco ? null : (p.fonte === undefined ? p.rota : p.fonte);
   const src = fonte ? CONTEUDO[fonte] : null;
   if (fonte && !src) throw new Error(`sem conteúdo extraído para ${fonte}`);
-  let corpo = (p.html || adaptarConteudo(src.html, p.rota)) + (p.extra || "");
+  const base = p.html
+    || (doBanco ? caixaTurma(p.turma) + adaptarConteudo(limpar(p.conteudoBanco || "").html, p.rota) : adaptarConteudo(src.html, p.rota));
+  let corpo = base + (p.extra || "");
   const docs = listaDocumentos(p.rota);
   if (docs) corpo = docs + `<h2>Acervo</h2>` + corpo;
   const descricao = p.resumo || primeiroParagrafo(corpo);
@@ -492,7 +549,7 @@ function paginaHub(secao) {
   }).join("\n          ");
   const html = documento({
     rota: secao.rota, titulo: secao.titulo, descricao: secao.intro,
-    corpoHtml: `${heroPagina({ trilha: [{ titulo: secao.titulo }], eyebrow: "CNM", titulo: secao.titulo, lead: secao.intro })}
+    corpoHtml: `${heroPagina({ trilha: [{ titulo: secao.titulo }], eyebrow: "CNM", titulo: secao.titulo, lead: secao.intro, foto: fotoDaRota(secao.rota) })}
     <section class="pg-corpo">
       <div class="wrap">
         <div class="hub">
@@ -517,7 +574,7 @@ function paginaContato() {
   const html = documento({
     rota: "/contato/", titulo: "Contato",
     descricao: "Fale com o Clube Niteroiense de Montanhismo: sede em Santa Rosa, Niterói. E-mail, WhatsApp e reunião social às quintas-feiras.",
-    corpoHtml: `${heroPagina({ trilha: [{ titulo: "Contato" }], eyebrow: "Fale conosco", titulo: "Contato", lead: "Tire dúvidas sobre atividades, cursos ou associação. A forma mais rápida é o WhatsApp." })}
+    corpoHtml: `${heroPagina({ trilha: [{ titulo: "Contato" }], eyebrow: "Fale conosco", titulo: "Contato", lead: "Tire dúvidas sobre atividades, cursos ou associação. A forma mais rápida é o WhatsApp.", foto: "/assets/hero/contato.jpg" })}
     <section class="pg-corpo">
       <div class="wrap contato-grid">
         <div>
@@ -796,6 +853,27 @@ async function carregarBanco() {
   if (docs !== null) {
     DOCUMENTOS = docs.filter(d => /^https:\/\//.test(d.arquivo_url));
     console.log(`banco: ${DOCUMENTOS.length} documentos`);
+  }
+
+  // Cursos: as páginas passam a vir do painel (migração 21). Sem a tabela,
+  // fica a lista fixa de SECOES. A lista de espera continua sendo do site.
+  const cursos = await sb("cursos_paginas?select=id,rota,titulo,resumo,conteudo,ordem&publicado=eq.true&order=ordem.asc,titulo.asc");
+  if (cursos !== null) {
+    const turmas = (await sb(`cursos?select=pagina_id,titulo,descricao,data_inicio,data_fim,horario_inicio,local,vagas_total,vagas_disponiveis,preco_associado,preco_publico,inclui_equipamento&status=eq.aberto&pagina_id=not.is.null&data_inicio=gte.${hojeSP()}&order=data_inicio.asc`)) || [];
+    const secao = SECOES.find(s => s.id === "cursos");
+    const fixas = secao.paginas.filter(p => !p.rota || p.rota === "/cursos/lista-de-espera-cursos/");
+    const ocupadas = new Set();
+    SECOES.forEach(s => s.id !== "cursos" && s.paginas.forEach(p => p.rota && ocupadas.add(p.rota)));
+    AVULSAS.forEach(a => ocupadas.add(a.rota));
+    const paginas = [];
+    for (const c of cursos) {
+      if (ocupadas.has(c.rota) || c.rota === secao.rota) { avisos.push(`${c.rota}: curso ignorado — o endereço é de outra página do site`); continue; }
+      paginas.push({ rota: c.rota, titulo: c.titulo, resumo: c.resumo || undefined, conteudoBanco: c.conteudo, turma: turmas.find(t => t.pagina_id === c.id) });
+      ROTAS.add(c.rota); ROTAS_FIXAS.add(c.rota);
+    }
+    secao.paginas = [...paginas, ...fixas];
+    const comTurma = paginas.filter(p => p.turma).length;
+    console.log(`banco: ${paginas.length} cursos${comTurma ? ` (${comTurma} com turma aberta)` : ""}`);
   }
 }
 
