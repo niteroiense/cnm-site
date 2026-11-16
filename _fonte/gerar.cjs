@@ -58,14 +58,14 @@ const FACEBOOK = "https://www.facebook.com/clubecnm";
 const SECOES = [
   {
     id: "o-cnm", rota: "/o-cnm/", titulo: "O CNM",
-    intro: "Fundado em 20 de novembro de 2004, o Clube Niteroiense de Montanhismo reúne praticantes de escalada, caminhada e montanhismo em Niterói. É filiado à FEMERJ.",
+    intro: "Fundado em 20 de novembro de 2004, o Clube Niteroiense de Montanhismo reúne praticantes de escalada, caminhada e montanhismo em Niterói. É filiado à FEEMERJ.",
     paginas: [
       { rota: "/o-cnm/historia-do-cnm/", titulo: "História do CNM", resumo: "Da primeira reunião, em março de 2003, à assembleia de fundação em novembro de 2004 — e o que veio depois." },
       { rota: "/o-cnm/diretoria/", titulo: "Diretoria", resumo: "Diretoria eleita, membros nomeados, conselho fiscal e representantes do clube." },
       { rota: "/o-cnm/guias-do-clube/", titulo: "Guias do Clube", resumo: "Os guias de trilha, escalada e ciclismo formados e reconhecidos pelo CNM." },
       { rota: "/o-cnm/estatuto/", titulo: "Estatuto", resumo: "O estatuto social que rege o funcionamento do clube." },
       { rota: "/o-cnm/cei/", titulo: "Centro Excursionista Icaraí", resumo: "A história do CEI, clube que antecedeu o montanhismo organizado em Niterói." },
-      { rota: "/o-cnm/o-cnm-e-a-femerj/", titulo: "O CNM e a FEMERJ", resumo: "A filiação do clube à federação estadual e os princípios éticos que seguimos." },
+      { rota: "/o-cnm/o-cnm-e-a-femerj/", titulo: "O CNM e a FEEMERJ", resumo: "A filiação do clube à federação estadual e os princípios éticos que seguimos." },
       { rota: "/termo-de-responsabilidade-e-assuncao-de-riscos/", titulo: "Termo de Responsabilidade", resumo: "O termo de assunção de riscos aplicado às atividades do clube." },
     ],
   },
@@ -81,13 +81,12 @@ const SECOES = [
   },
   {
     id: "cursos", rota: "/cursos/", titulo: "Cursos",
-    intro: "Cursos de formação para quem está começando e de atualização para quem já pratica. O CBE é homologado pela FEMERJ.",
+    intro: "Cursos de formação para quem está começando e de atualização para quem já pratica. O CBE é homologado pela FEEMERJ.",
     paginas: [
-      { rota: "/cursos/curso-basico-de-escalada/", titulo: "Curso Básico de Escalada", resumo: "CBE: 20 aulas, teóricas e práticas, com certificação da FEMERJ." },
+      { rota: "/cursos/curso-basico-de-escalada/", titulo: "Curso Básico de Escalada", resumo: "CBE: 20 aulas, teóricas e práticas, com certificação da FEEMERJ." },
       { rota: "/cursos/curso-basico-de-montanhismo/", titulo: "Curso Básico de Montanhismo" },
       { rota: "/curso-basico-de-caminhada/", titulo: "Curso Básico de Caminhada" },
       { rota: "/cursos/curso-de-reciclagem/", titulo: "Curso de Reciclagem" },
-      { rota: "/cursos/atendimento-pre-hospitalar/", titulo: "Atendimento Pré-Hospitalar" },
       { rota: "/cursos/treinamento-de-auto-resgate/", titulo: "Treinamento de Auto-Resgate" },
       {
         rota: "/cursos/lista-de-espera-cursos/", titulo: "Lista de espera",
@@ -151,7 +150,7 @@ const SECOES = [
     id: "parceiros", rota: "/parceiros/", titulo: "Parceiros",
     intro: "Instituições com que o clube mantém parceria e representação.",
     paginas: [
-      { rota: "/parceiros/espaco-femerj/", titulo: "Espaço FEMERJ" },
+      { rota: "/parceiros/espaco-femerj/", titulo: "Espaço FEEMERJ" },
       { rota: "/parceiros/espaco-peset/", titulo: "Espaço PESET", resumo: "Parque Estadual da Serra da Tiririca: documentos e a representação do CNM no conselho." },
     ],
   },
@@ -345,7 +344,7 @@ function rodape() {
       <div class="foot-col brand-col">
         <a class="fbrand" href="/"><img src="/assets/logo.png" alt="CNM — Clube Niteroiense de Montanhismo"/></a>
         <h4 class="foot-title">Clube Niteroiense de Montanhismo</h4>
-        <p class="foot-about">Clube de escalada, caminhada e demais atividades de montanhismo. Fundado em 2004 e filiado à FEMERJ. Cursos de escalada e montanhismo.</p>
+        <p class="foot-about">Clube de escalada, caminhada e demais atividades de montanhismo. Fundado em 2004 e filiado à FEEMERJ. Cursos de escalada e montanhismo.</p>
       </div>
       <div class="foot-col">
         <h5>Contatos</h5>
@@ -813,6 +812,20 @@ function copiarEstaticos() {
   for (const pasta of ["assets", "wp-content"]) copiar(path.join(RAIZ, pasta), path.join(SAIDA, pasta));
 }
 
+// Buscadores (Google, Bing etc.) liberados; robôs que coletam sites para treinar IA, bloqueados.
+// O bloqueio vale para quem respeita o robots.txt — a maioria dos robôs grandes respeita.
+const ROBOS_IA = [
+  "GPTBot", "ChatGPT-User", "OAI-SearchBot", "ClaudeBot", "Claude-Web", "anthropic-ai",
+  "Google-Extended", "Applebot-Extended", "CCBot", "PerplexityBot", "Bytespider",
+  "meta-externalagent", "Meta-ExternalAgent", "FacebookBot", "Amazonbot", "cohere-ai",
+  "Diffbot", "ImagesiftBot", "Omgilibot", "Timpibot", "YouBot",
+];
+function gerarRobots() {
+  const linhas = ["# robots.txt - Clube Niteroiense de Montanhismo", "", "User-agent: *", "Allow: /", ""];
+  for (const r of ROBOS_IA) linhas.push(`User-agent: ${r}`, "Disallow: /", "");
+  fs.writeFileSync(path.join(SAIDA, "robots.txt"), linhas.join("\n"));
+}
+
 async function main() {
   // proteção: limpar a saída não pode apagar o repositório
   if (SAIDA === RAIZ || RAIZ.startsWith(SAIDA + path.sep)) throw new Error(`SAIDA inválida: ${SAIDA}`);
@@ -835,6 +848,7 @@ async function main() {
   for (const s of SECOES) paginaHub(s);
   paginaContato();
   atualizarHome();
+  gerarRobots();
 
   console.log(`${gerados.length} páginas geradas + home em ${SAIDA}`);
   const unicos = [...new Set(avisos)];

@@ -1,4 +1,3 @@
-/o-cnm/: publicação ignorada — o endereço é de uma página do site
 /o-cnm/guias-do-clube/: imagem ausente removida (/wp-content/uploads/avatars/26/57f79e6a1835f-bpfull.jpg)
 /o-cnm/guias-do-clube/: imagem ausente removida (/wp-content/uploads/avatars/32/1468986761-bpfull.jpg)
 /o-cnm/guias-do-clube/: imagem ausente removida (/wp-content/uploads/avatars/204/5b762fa196f74-bpfull.jpg)
@@ -12,7 +11,6 @@
 /curso-basico-de-caminhada/: link para página ainda não migrada (/produto/curso-basico-de-montanhismo/)
 /cursos/curso-de-reciclagem/: link para página ainda não migrada (/produto/curso-de-reciclagem/)
 /cursos/curso-de-reciclagem/: link para página ainda não migrada (/produto/curso-de-reciclagem)
-/cursos/atendimento-pre-hospitalar/: link para página ainda não migrada (/categoria-produto/cursos/)
 /publicacoes/guias-de-trilhas-e-escaladas/: link para página ainda não migrada (/categoria-produto/cnmuamba/)
 /parceiros/espaco-femerj/: link para página ainda não migrada (/categoria-produto/cnmuamba/)
 /confraternizacao-de-final-de-ano-em-tres-picos/: link para página ainda não migrada (/atividades/confraternizacao-de-final-de-ano-em-tres-picos/)

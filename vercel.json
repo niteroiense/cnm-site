@@ -11,6 +11,11 @@
       "permanent": true
     },
     {
+      "source": "/cursos/atendimento-pre-hospitalar/",
+      "destination": "/cursos/",
+      "permanent": true
+    },
+    {
       "source": "/assembleia-2026/",
       "destination": "/edital-de-convocacao-da-assembleia-geral-ordinaria-2-copy/",
       "permanent": false
