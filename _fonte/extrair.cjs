@@ -26,7 +26,7 @@ const ATRIBUTOS = {
 };
 const ALINHAMENTOS = ["alignleft", "alignright", "aligncenter"];
 const IFRAMES_OK = /youtube\.com|youtube-nocookie\.com|youtu\.be|issuu\.com|google\.com\/maps|vimeo\.com/i;
-const TAGS_FORA = ["script", "style", "noscript", "form", "input", "button", "select", "textarea", "label", "svg"];
+const TAGS_FORA = ["script", "style", "noscript", "form", "input", "button", "select", "textarea", "label", "svg", "colgroup"];
 const TAGS_DESEMBRULHA = ["span", "font", "div", "section", "article", "center", "small", "big", "u"];
 
 /** E-mail ofuscado pelo Cloudflare: o 1º byte é a chave do XOR. */

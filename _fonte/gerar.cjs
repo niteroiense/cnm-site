@@ -29,6 +29,7 @@ let POSTS = require("./conteudo/posts.json");   // substituído pelo banco depoi
 const CROQUIS = require("./conteudo/croquis.json");
 const TRILHAS = require("./conteudo/trilhas.json");
 let DOCUMENTOS = [];                              // PDFs publicados pelo painel
+const PAGINAS_EDITADAS = {};                      // rota -> { titulo, conteudo } (paginas_site)
 
 // Categorias dos posts que ganham página própria, em /categoria/<slug>/ (URL do WP).
 // "sem-categoria" não tem página: esses posts aparecem só no arquivo completo.
@@ -517,11 +518,15 @@ function caixaTurma(t) {
 function paginaDeConteudo(secao, p) {
   // página de curso vinda do painel (tabela cursos_paginas)
   const doBanco = p.conteudoBanco !== undefined;
-  const fonte = doBanco ? null : (p.fonte === undefined ? p.rota : p.fonte);
+  // página institucional editada no painel (tabela paginas_site)
+  const editada = PAGINAS_EDITADAS[p.rota];
+  const fonte = doBanco || editada ? null : (p.fonte === undefined ? p.rota : p.fonte);
   const src = fonte ? CONTEUDO[fonte] : null;
   if (fonte && !src) throw new Error(`sem conteúdo extraído para ${fonte}`);
   const base = p.html
-    || (doBanco ? caixaTurma(p.turma) + adaptarConteudo(limpar(p.conteudoBanco || "").html, p.rota) : adaptarConteudo(src.html, p.rota));
+    || (doBanco ? caixaTurma(p.turma) + adaptarConteudo(limpar(p.conteudoBanco || "").html, p.rota)
+      : editada ? adaptarConteudo(limpar(editada.conteudo || "").html, p.rota)
+      : adaptarConteudo(src.html, p.rota));
   let corpo = base + (p.extra || "");
   const docs = listaDocumentos(p.rota);
   if (docs) corpo = docs + `<h2>Acervo</h2>` + corpo;
@@ -853,6 +858,18 @@ async function carregarBanco() {
   if (docs !== null) {
     DOCUMENTOS = docs.filter(d => /^https:\/\//.test(d.arquivo_url));
     console.log(`banco: ${DOCUMENTOS.length} documentos`);
+  }
+
+  // Páginas institucionais editadas no painel (migração 25): texto e título.
+  const pags = await sb("paginas_site?select=rota,titulo,conteudo");
+  if (pags !== null) {
+    for (const pg of pags) {
+      const { pagina } = secaoDaRota(pg.rota);
+      if (!pagina) { avisos.push(`${pg.rota}: página do painel sem lugar no menu — ignorada`); continue; }
+      PAGINAS_EDITADAS[pg.rota] = pg;
+      if (pg.titulo && pg.titulo.trim()) pagina.titulo = pg.titulo.trim();
+    }
+    console.log(`banco: ${Object.keys(PAGINAS_EDITADAS).length} páginas institucionais`);
   }
 
   // Cursos: as páginas passam a vir do painel (migração 21). Sem a tabela,
